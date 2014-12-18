@@ -178,6 +178,7 @@ class ActionListener implements IMqttActionListener {
         publish(exception);
         break;
     }
+    exception.printStackTrace();
 
   }
 
