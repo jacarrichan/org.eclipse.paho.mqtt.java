@@ -69,6 +69,9 @@ public class Notify {
         .setSmallIcon(R.drawable.ic_launcher);
 
     Notification notification = notificationCompat.build();
+    notification.number=1;
+    notification.defaults|=Notification.DEFAULT_SOUND;
+    notification.defaults |= Notification.DEFAULT_LIGHTS;
     //display the notification
     mNotificationManager.notify(MessageID, notification);
     MessageID++;
