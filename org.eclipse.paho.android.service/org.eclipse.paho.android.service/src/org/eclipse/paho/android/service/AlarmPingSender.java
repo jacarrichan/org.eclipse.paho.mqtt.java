@@ -12,6 +12,8 @@
  */
 package org.eclipse.paho.android.service;
 
+import java.util.Date;
+
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttPingSender;
@@ -100,6 +102,7 @@ class AlarmPingSender implements MqttPingSender {
 	public void schedule(long delayInMilliseconds) {
 		long nextAlarmInMilliseconds = System.currentTimeMillis()
 				+ delayInMilliseconds;
+		Log.d(TAG, "current at " + (new Date())+"next at"+(new Date(nextAlarmInMilliseconds)));
 		Log.d(TAG, "Schedule next alarm at " + nextAlarmInMilliseconds);
 		AlarmManager alarmManager = (AlarmManager) service
 				.getSystemService(Service.ALARM_SERVICE);
