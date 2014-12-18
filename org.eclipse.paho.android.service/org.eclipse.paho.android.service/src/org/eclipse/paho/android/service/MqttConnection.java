@@ -999,8 +999,8 @@ class MqttConnection implements MqttCallback {
 						resultBundle.putSerializable(
 								MqttServiceConstants.CALLBACK_EXCEPTION,
 								exception);
-						service.callbackToActivity(clientHandle, Status.ERROR,
-								resultBundle);
+//						service.callbackToActivity(clientHandle, Status.ERROR,
+//								resultBundle);
 
 						doAfterConnectFail(resultBundle);
 						
