@@ -296,6 +296,7 @@ class MqttConnection implements MqttCallback {
 		//since the device's cpu can go to sleep, acquire a wakelock and drop it later.
 		acquireWakeLock();
 		service.callbackToActivity(clientHandle, Status.OK, resultBundle);
+		service.clearRetryTime(this);
 		deliverBacklog();
 		setConnectingState(false);
 		disconnected = false;
@@ -308,6 +309,7 @@ class MqttConnection implements MqttCallback {
 		disconnected = true;
 		setConnectingState(false);
 		service.callbackToActivity(clientHandle, Status.ERROR,resultBundle);
+	    service.retryConnection(this);
 		releaseWakeLock();
 	}
 	

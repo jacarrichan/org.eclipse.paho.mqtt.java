@@ -12,7 +12,7 @@
  */
 package org.eclipse.paho.android.service;
 
-import java.util.List;
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,8 +24,8 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.MqttPersistenceException;
 import org.eclipse.paho.client.mqttv3.MqttSecurityException;
 
-import android.app.ActivityManager;
-import android.app.ActivityManager.RunningTaskInfo;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -231,7 +231,10 @@ public class MqttService extends Service implements MqttTraceHandler {
 	// somewhere to persist received messages until we're sure
 	// that they've reached the application
 	MessageStore messageStore;
-
+	private ReconnectReceiver  reconnectMonitor;
+	private static final String ACTION_RECONNECT = "org.eclipse.paho.android.service.MqttService.ACTION_RECONNECT";
+	//reconnect 
+	private PendingIntent pendingIntent;
 	// An intent receiver to deal with changes in network connectivity
 	private NetworkConnectionIntentReceiver networkConnectionMonitor;
 
@@ -247,7 +250,9 @@ public class MqttService extends Service implements MqttTraceHandler {
 
 	// mapping from client handle strings to actual client connections.
 	private Map<String/* clientHandle */, MqttConnection/* client */> connections = new ConcurrentHashMap<String, MqttConnection>();
-	
+
+	private Map<String/* clientHandle */, Long/* retryTime */> retryTimes= new ConcurrentHashMap<String, Long>();
+	private final static String CLIENT_HANDLER="CLIENT_HANDLER";
   public MqttService() {
     super();
   }
@@ -321,6 +326,37 @@ public class MqttService extends Service implements MqttTraceHandler {
 	  	MqttConnection client = getConnection(clientHandle);
 	  	client.connect(connectOptions, invocationContext, activityToken);
 		
+  }
+  void clearRetryTime(MqttConnection client){
+      String clientHandle=  client.getClientHandle();
+      retryTimes.put(clientHandle,0L);
+  }
+  void retryConnection(MqttConnection client){
+      String clientHandle=  client.getClientHandle();
+      Long retryTime= retryTimes.get(clientHandle);
+      if(null==retryTime|| retryTime.intValue()==0){
+          retryTime=1L;
+      }
+      if(retryTime.intValue()>10){
+          retryTime=1L;
+      }
+       long nextAlarmInMilliseconds= System.currentTimeMillis() +retryTime*client.getConnectOptions().getKeepAliveInterval()*1000;
+       traceDebug(TAG, "Retry connect "+retryTime+" for ["+clientHandle+"] at next "+(new Date(nextAlarmInMilliseconds)));
+      AlarmManager alarmManager = (AlarmManager) getSystemService(Service.ALARM_SERVICE);
+      Intent intent= new Intent(ACTION_RECONNECT);
+      intent.putExtra(CLIENT_HANDLER, clientHandle);
+      pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+      alarmManager.set(AlarmManager.RTC_WAKEUP, nextAlarmInMilliseconds,pendingIntent);
+      retryTime++;
+      retryTimes.put(clientHandle,retryTime);
+  }
+  /**
+ *  Request signle clients to reconnect if appropriate
+ */
+void reconnect(MqttConnection client) {
+      if(this.isOnline()){
+          client.reconnect();
+      }
   }
   
   /**
@@ -687,7 +723,7 @@ public class MqttService extends Service implements MqttTraceHandler {
   @Override
   public void traceDebug(String tag, String message) {
     traceCallback(MqttServiceConstants.TRACE_DEBUG, tag, message);
-//    Log.d(tag, message);
+    Log.d(tag, message);
   }
 
   /**
@@ -741,6 +777,10 @@ public class MqttService extends Service implements MqttTraceHandler {
   
   @SuppressWarnings("deprecation")
   private void registerBroadcastReceivers() {
+      if (reconnectMonitor == null) {
+          reconnectMonitor = new ReconnectReceiver();
+          registerReceiver(reconnectMonitor, new IntentFilter(ACTION_RECONNECT));
+      }
 		if (networkConnectionMonitor == null) {
 			networkConnectionMonitor = new NetworkConnectionIntentReceiver();
 			registerReceiver(networkConnectionMonitor, new IntentFilter(
@@ -762,6 +802,10 @@ public class MqttService extends Service implements MqttTraceHandler {
   }
   
   private void unregisterBroadcastReceivers(){
+      if(reconnectMonitor != null){
+          unregisterReceiver(reconnectMonitor);
+          reconnectMonitor = null;
+      }
   	if(networkConnectionMonitor != null){
   		unregisterReceiver(networkConnectionMonitor);
   		networkConnectionMonitor = null;
@@ -853,5 +897,29 @@ public class MqttService extends Service implements MqttTraceHandler {
 			}
 		}
 	}
+//========================================================================
+	   private class ReconnectReceiver extends BroadcastReceiver {
+	       private WakeLock wakelock;
 
+	           @Override
+	           public void onReceive(Context context, Intent intent) {
+	               if (wakelock == null) {
+	                   PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+	                   wakelock = pm
+	                           .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MQTT");
+	               }
+	               wakelock.acquire();
+	               String clientHandle=intent.getExtras().getString(CLIENT_HANDLER);
+	                   MqttConnection connection=connections.get(clientHandle);
+	                   if(null!=connection){
+	                       reconnect(connection);
+	                   }else{
+	                       traceError(TAG, "Retry failed,"+clientHandle+"has no connection");
+	                   }
+	               if (wakelock != null && wakelock.isHeld()) {
+	                   wakelock.release();
+	               }
+	           }
+	       }
+//========================================================================
 }
