@@ -332,7 +332,8 @@ public class ClientConnections extends ListActivity {
    
     //set traceCallback
     client.setTraceCallback(new MqttTraceCallback());
-    
+    conOpt.setKeepAliveInterval(20);
+    Log.e("ClientConnections", "keep alive secondes"+conOpt.getKeepAliveInterval());
     connection.addConnectionOptions(conOpt);
     Connections.getInstance(this).addConnection(connection);
     if (doConnect) {

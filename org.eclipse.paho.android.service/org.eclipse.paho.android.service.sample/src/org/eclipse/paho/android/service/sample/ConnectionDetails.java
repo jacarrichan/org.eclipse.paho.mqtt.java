@@ -15,7 +15,9 @@ package org.eclipse.paho.android.service.sample;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
+
 import org.eclipse.paho.android.service.sample.R;
+
 import android.app.ActionBar;
 import android.app.FragmentTransaction;
 import android.os.Bundle;
@@ -24,6 +26,7 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.util.Log;
 import android.view.Menu;
 
 /**
@@ -116,6 +119,7 @@ public class ConnectionDetails extends FragmentActivity implements
     }
 
     connection = Connections.getInstance(this).getConnection(clientHandle);
+    Log.e("demo", "keep alive seonds :"+connection.getConnectionOptions().getKeepAliveInterval());
     changeListener = new ChangeListener();
     connection.registerChangeListener(changeListener);
   }

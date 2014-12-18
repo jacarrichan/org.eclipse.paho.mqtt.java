@@ -127,7 +127,7 @@ public class Listener implements OnMenuItemClickListener {
   private void reconnect() {
 
     Connections.getInstance(context).getConnection(clientHandle).changeConnectionStatus(ConnectionStatus.CONNECTING);
-
+    Log.v("demo", "reconnect-------");
     Connection c = Connections.getInstance(context).getConnection(clientHandle);
     try {
       c.getClient().connect(c.getConnectionOptions(), null, new ActionListener(context, Action.CONNECT, clientHandle, null));
@@ -211,13 +211,18 @@ public class Listener implements OnMenuItemClickListener {
   {
     String topic = ((EditText) connectionDetails.findViewById(R.id.lastWillTopic))
         .getText().toString();
-
-    ((EditText) connectionDetails.findViewById(R.id.lastWillTopic)).getText().clear();
+//不清掉
+  //  ((EditText) connectionDetails.findViewById(R.id.lastWillTopic)).getText().clear();
 
     String message = ((EditText) connectionDetails.findViewById(R.id.lastWill)).getText()
         .toString();
-
-    ((EditText) connectionDetails.findViewById(R.id.lastWill)).getText().clear();
+    	message=String.valueOf(message);
+	    if(message.length()>6){
+	    	message=message.substring(0, 6-1);
+	    	}
+    
+    ((EditText) connectionDetails.findViewById(R.id.lastWill)).setText(message+"  "+System.currentTimeMillis());
+  //  ((EditText) connectionDetails.findViewById(R.id.lastWill)).getText().clear();
 
     RadioGroup radio = (RadioGroup) connectionDetails.findViewById(R.id.qosRadio);
     int checked = radio.getCheckedRadioButtonId();
@@ -280,6 +285,7 @@ public class Listener implements OnMenuItemClickListener {
     try {
       InputStream logPropStream = context.getResources().openRawResource(R.raw.jsr47android);
       LogManager.getLogManager().readConfiguration(logPropStream);
+      LogManager lm=LogManager.getLogManager();
       logging = true;
          
       HashMap<String, Connection> connections = (HashMap<String,Connection>)Connections.getInstance(context).getConnections();

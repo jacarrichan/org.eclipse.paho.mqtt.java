@@ -29,12 +29,14 @@ IBM Corp.
 
     <EditText
         android:id="@+id/lastWillTopic"
+        android:layout_width="0dip"
         android:layout_height="wrap_content"
         android:layout_weight="0.22"
-        android:layout_width="0dip"
         android:ems="10"
+        android:hint="@string/topicHint"
         android:inputType="text"
-        android:hint="@string/topicHint" />
+        android:text="test" />
+
 </LinearLayout>
 
 
